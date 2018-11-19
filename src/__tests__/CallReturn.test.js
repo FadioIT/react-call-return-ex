@@ -2,8 +2,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import createCall from '../createCall';
-import createReturn from '../createReturn';
+import { createCall, createReturn } from '..';
 
 jest.useFakeTimers();
 
