@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ReactCallReturn should handle deep updates in call 1`] = `
+Array [
+  <span
+    prop={500}
+  />,
+  <span
+    prop={500}
+  />,
+  <span
+    prop={500}
+  />,
+]
+`;
+
+exports[`ReactCallReturn should handle deep updates in call 2`] = `
+Array [
+  <span
+    prop={100}
+  />,
+  <span
+    prop={200}
+  />,
+  <span
+    prop={500}
+  />,
+]
+`;
+
+exports[`ReactCallReturn should render a call 1`] = `
+<div>
+  <span
+    prop="foo==bar"
+  />
+  <span
+    prop="foo!=bar"
+  />
+</div>
+`;
+
+exports[`ReactCallReturn should update a call 1`] = `
+<div>
+  <span
+    prop="foo==bar"
+  />
+  <span
+    prop="foo!=bar"
+  />
+</div>
+`;
+
+exports[`ReactCallReturn should update a call 2`] = `
+<div>
+  <span
+    prop="foo!=bar"
+  />
+  <span
+    prop="foo==bar"
+  />
+</div>
+`;

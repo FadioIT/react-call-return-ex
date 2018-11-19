@@ -1,0 +1,40 @@
+{
+  "name": "react-call-return-ex",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "fdecampredon <francois.de.campredon@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^16.6.3",
+    "react-reconciler": "^0.17.2"
+  },
+  "scripts": {
+    "precommit": "pretty-quick --staged"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/node": "^7.0.0",
+    "@babel/plugin-proposal-class-properties": "^7.1.0",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "@babel/preset-react": "^7.0.0",
+    "babel-core": "^7.0.0-bridge",
+    "babel-eslint": "^10.0.1",
+    "babel-jest": "^23.6.0",
+    "eslint": "^5.8.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^3.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.2",
+    "eslint-plugin-prettier": "^3.0.0",
+    "eslint-plugin-react": "^7.11.1",
+    "husky": "^1.1.3",
+    "jest": "^23.6.0",
+    "prettier": "^1.15.1",
+    "pretty-quick": "^1.8.0",
+    "react": "^16.6.3",
+    "react-reconciler": "^0.17.2",
+    "react-test-renderer": "^16.6.3"
+  }
+}
