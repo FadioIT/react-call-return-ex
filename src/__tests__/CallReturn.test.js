@@ -2,8 +2,8 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import Call from '../Call';
-import Return from '../Return';
+import createCall from '../createCall';
+import createReturn from '../createReturn';
 
 jest.useFakeTimers();
 
@@ -18,7 +18,7 @@ describe('ReactCallReturn', () => {
 
     function Child({ bar }) {
       ops.push(['Child', bar]);
-      return <Return props={{ bar }} continuation={Continuation} />;
+      return createReturn({ props: { bar }, continuation: Continuation });
     }
 
     function Indirection() {
@@ -26,20 +26,16 @@ describe('ReactCallReturn', () => {
       return [<Child key="a" bar />, <Child key="b" bar={false} />];
     }
 
-    // An alternative API could mark Parent as something that needs
-    // returning. E.g. Parent.handler = HandleReturns;
+    function HandleReturns(props, returns) {
+      ops.push('HandleReturns');
+      return returns.map((y, i) => (
+        <y.continuation key={i} isSame={props.foo === y.props.bar} />
+      ));
+    }
+
     function Parent(props) {
       ops.push('Parent');
-      return (
-        <Call props={props} elements={props.children}>
-          {(props, returns) => {
-            ops.push('HandleReturns');
-            return returns.map((y, i) => (
-              <y.continuation key={i} isSame={props.foo === y.props.bar} />
-            ));
-          }}
-        </Call>
-      );
+      return createCall(props.children, HandleReturns, props);
     }
 
     function App() {
@@ -78,23 +74,21 @@ describe('ReactCallReturn', () => {
     }
 
     function Child({ bar }) {
-      return <Return props={{ bar }} continuation={Continuation} />;
+      return createReturn({ props: { bar }, continuation: Continuation });
     }
 
     function Indirection() {
       return [<Child key="a" bar />, <Child key="b" bar={false} />];
     }
 
+    function HandleReturns(props, returns) {
+      return returns.map((y, i) => (
+        <y.continuation key={i} isSame={props.foo === y.props.bar} />
+      ));
+    }
+
     function Parent(props) {
-      return (
-        <Call props={props} elements={props.children}>
-          {(props, returns) =>
-            returns.map((y, i) => (
-              <y.continuation key={i} isSame={props.foo === y.props.bar} />
-            ))
-          }
-        </Call>
-      );
+      return createCall(props.children, HandleReturns, props);
     }
 
     function App(props) {
@@ -135,8 +129,15 @@ describe('ReactCallReturn', () => {
 
       render() {
         ops.push('Child');
-        return <Return continuation={Continuation} />;
+        return createReturn(Continuation);
       }
+    }
+
+    function HandleReturns(props, returns) {
+      ops.push('HandleReturns');
+      return returns.map((ContinuationComponent, i) => (
+        <ContinuationComponent key={i} />
+      ));
     }
 
     class Parent extends React.Component {
@@ -146,19 +147,7 @@ describe('ReactCallReturn', () => {
 
       render() {
         ops.push('Parent');
-
-        return (
-          <Call props={this.props} elements={this.props.children}>
-            {(props, returns) => {
-              ops.push('HandleReturns');
-              return returns.map(
-                ({ continuation: ContinuationComponent }, i) => (
-                  <ContinuationComponent key={i} />
-                ),
-              );
-            }}
-          </Call>
-        );
+        return createCall(this.props.children, HandleReturns, this.props);
       }
     }
 
@@ -195,23 +184,19 @@ describe('ReactCallReturn', () => {
 
       render() {
         instances[this.props.id] = this;
-        return <Return value={this.state.value} />;
+        return createReturn(this.state.value);
       }
     }
 
     function App() {
-      return (
-        <Call
-          elements={[
-            <Counter key="a" id="a" />,
-            <Counter key="b" id="b" />,
-            <Counter key="c" id="c" />,
-          ]}
-        >
-          {(p, returns) =>
-            returns.map(({ value }, i) => <span key={i} prop={value * 100} />)
-          }
-        </Call>
+      return createCall(
+        [
+          <Counter key="a" id="a" />,
+          <Counter key="b" id="b" />,
+          <Counter key="c" id="c" />,
+        ],
+        (p, returns) => returns.map((y, i) => <span key={i} prop={y * 100} />),
+        {},
       );
     }
 
@@ -229,15 +214,13 @@ describe('ReactCallReturn', () => {
   it('should unmount and remount children', () => {
     let ops = [];
 
-    function TCall(props) {
-      return (
-        <Call elements={props.children}>
-          {(p, returns) => returns.map(({ value }) => value)}
-        </Call>
-      );
+    class Call extends React.Component {
+      render() {
+        return createCall(this.props.children, (p, returns) => returns, {});
+      }
     }
 
-    class TReturn extends React.Component {
+    class Return extends React.Component {
       // eslint-disable-next-line
       UNSAFE_componentWillMount() {
         ops.push(`Mount Return ${this.props.value}`);
@@ -249,15 +232,15 @@ describe('ReactCallReturn', () => {
 
       render() {
         ops.push(`Return ${this.props.value}`);
-        return <Return value={this.props.value} />;
+        return createReturn(this.props.children);
       }
     }
 
     const render = ReactTestRenderer.create(
-      <TCall>
-        <TReturn value={1} />
-        <TReturn value={2} />
-      </TCall>,
+      <Call>
+        <Return value={1} />
+        <Return value={2} />
+      </Call>,
     );
 
     expect(ops).toEqual([
@@ -269,16 +252,16 @@ describe('ReactCallReturn', () => {
 
     ops = [];
 
-    render.update(<TCall />);
+    render.update(<Call />);
 
     expect(ops).toEqual(['Unmount Return 1', 'Unmount Return 2']);
 
     ops = [];
 
     render.update(
-      <TCall>
-        <TReturn value={3} />
-      </TCall>,
+      <Call>
+        <Return value={3} />
+      </Call>,
     );
 
     expect(ops).toEqual(['Mount Return 3', 'Return 3']);

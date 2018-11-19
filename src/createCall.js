@@ -10,25 +10,25 @@ class Call extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { elements, props } = this.props;
+    const { children, props } = this.props;
 
     this._container.shouldNotifyUpdate = false;
     this._container.props = props;
     this._mountNode = CallReturnReconcilier.createContainer(this._container);
-    CallReturnReconcilier.updateContainer(elements, this._mountNode, this);
+    CallReturnReconcilier.updateContainer(children, this._mountNode, this);
     this.updateState();
     this._container.shouldNotifyUpdate = true;
   }
 
   componentDidUpdate(oldProps) {
     if (
-      oldProps.elements !== this.props.elements ||
+      oldProps.children !== this.props.children ||
       oldProps.props !== this.props.props
     ) {
       this._container.shouldNotifyUpdate = false;
       this._container.props = this.props.props;
       CallReturnReconcilier.updateContainer(
-        this.props.elements,
+        this.props.children,
         this._mountNode,
         this,
       );
@@ -45,13 +45,21 @@ class Call extends React.PureComponent {
   updateState = () => {
     this.setState({
       props: this._container.props,
-      returns: this._container.children.map(({ props }) => props),
+      returns: this._container.children.map(({ value }) => value),
     });
   };
 
   render() {
-    return this.props.children(this.state.props, this.state.returns);
+    return this.props.handler(this.state.props, this.state.returns);
   }
 }
 
-export default Call;
+function createCall(children, handler, props) {
+  return (
+    <Call handler={handler} props={props}>
+      {children}
+    </Call>
+  );
+}
+
+export default createCall;

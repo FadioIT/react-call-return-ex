@@ -1,4 +1,4 @@
-import { INTERNAL_RETURN_TYPE } from './Return';
+import { INTERNAL_RETURN_TYPE } from './createReturn';
 
 export function createContainerInfo(callback) {
   let timeout;
@@ -43,7 +43,7 @@ export function createInstance(type, props, rootContainerInstance) {
     throw new Error('Cannot render intrinsic element inside a Call');
   }
   return {
-    props,
+    value: props.value,
     tag: 'RETURN',
     container: rootContainerInstance,
   };
@@ -82,7 +82,7 @@ export function commitUpdate(
   oldProps,
   newProps,
 ) {
-  instance.props = newProps;
+  instance.value = newProps.value;
   instance.container.notifyUpdate();
 }
 
