@@ -1,15 +1,22 @@
 {
-  "name": "react-call-return-ex",
-  "version": "0.0.1",
-  "main": "index.js",
+  "name": "@fadioit/react-call-return-ex",
+  "version": "0.0.1-alpha.2",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
   "author": "fdecampredon <francois.de.campredon@gmail.com>",
+  "description": "Never use it",
   "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "build": "[ -e lib ] && rm -rf lib; mkdir lib; babel src --out-dir lib --ignore '**/*.test.js'",
+    "precommit": "pretty-quick --staged",
+    "prepublishOnly": "yarn run build"
+  },
   "peerDependencies": {
     "react": "^16.6.3",
     "react-reconciler": "^0.17.2"
-  },
-  "scripts": {
-    "precommit": "pretty-quick --staged"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.5",
@@ -36,5 +43,8 @@
     "react": "^16.6.3",
     "react-reconciler": "^0.17.2",
     "react-test-renderer": "^16.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
