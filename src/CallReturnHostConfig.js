@@ -1,17 +1,10 @@
 import { INTERNAL_RETURN_TYPE } from './createReturn';
 
 export function createContainerInfo(callback) {
-  let timeout;
   return {
-    shouldNotifyUpdate: false,
     children: [],
     tag: 'CONTAINER',
-    notifyUpdate() {
-      if (this.shouldNotifyUpdate) {
-        clearImmediate(timeout);
-        timeout = setImmediate(callback);
-      }
-    },
+    notifyUpdate: callback,
   };
 }
 
@@ -30,8 +23,8 @@ export function prepareForCommit() {
   // noop
 }
 
-export function resetAfterCommit() {
-  // noop
+export function resetAfterCommit(container) {
+  container.notifyUpdate();
 }
 
 export function shouldSetTextContent() {
@@ -58,7 +51,6 @@ export function appendChild(parent, child) {
     throw new Error('If you face this case, react-call-return is broken');
   }
   parent.children.push(child);
-  parent.notifyUpdate();
 }
 
 export const appendInitialChild = appendChild;
@@ -83,7 +75,6 @@ export function commitUpdate(
   newProps,
 ) {
   instance.value = newProps.value;
-  instance.container.notifyUpdate();
 }
 
 export function commitTextUpdate() {
@@ -93,7 +84,6 @@ export function commitTextUpdate() {
 export function removeChild(parent, child) {
   const index = parent.children.indexOf(child);
   parent.children.splice(index, 1);
-  parent.notifyUpdate();
 }
 
 export const removeChildFromContainer = removeChild;

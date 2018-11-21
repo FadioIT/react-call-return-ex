@@ -3,54 +3,59 @@ import CallReturnReconcilier from './CallReturnReconcilier';
 import { createContainerInfo } from './CallReturnHostConfig';
 
 class Call extends React.PureComponent {
-  constructor(props, context, updater) {
-    super(props, context, updater);
-    this.state = { returns: [] };
+  constructor(props, context) {
+    super(props, context);
     this._container = createContainerInfo(this.updateState);
+    this._hasUnmounted = false;
+    this._updating = false;
+    this.state = { returns: [], props: props.props };
   }
 
   componentDidMount() {
-    const { children, props } = this.props;
-
-    this._container.shouldNotifyUpdate = false;
-    this._container.props = props;
     this._mountNode = CallReturnReconcilier.createContainer(this._container);
-    CallReturnReconcilier.updateContainer(children, this._mountNode, this);
+    this.updateContainer();
     this.updateState();
-    this._container.shouldNotifyUpdate = true;
   }
 
   componentDidUpdate(oldProps) {
-    if (
-      oldProps.children !== this.props.children ||
-      oldProps.props !== this.props.props
-    ) {
-      this._container.shouldNotifyUpdate = false;
-      this._container.props = this.props.props;
-      CallReturnReconcilier.updateContainer(
-        this.props.children,
-        this._mountNode,
-        this,
-      );
+    if (oldProps.children !== this.props.children) {
+      this.updateContainer();
       this.updateState();
-      this._container.shouldNotifyUpdate = true;
+    } else if (oldProps.props !== this.props.props) {
+      // eslint-disable-next-line
+      this.setState({ props: this.props.props });
     }
   }
 
   componentWillUnmount() {
-    this._container.shouldNotifyUpdate = false;
+    this._hasUnmounted = true;
     CallReturnReconcilier.updateContainer(null, this._mountNode, this);
+    this.updateState();
   }
 
   updateState = () => {
+    if (this._hasUnmounted || this._updating) {
+      return;
+    }
     this.setState({
-      props: this._container.props,
+      props: this.props.props,
       returns: this._container.children.map(({ value }) => value),
     });
   };
 
+  updateContainer() {
+    this._updating = true;
+    CallReturnReconcilier.updateContainer(
+      this.props.children,
+      this._mountNode,
+      this,
+    );
+    this._updating = false;
+  }
+
   render() {
-    return this.props.handler(this.state.props, this.state.returns);
+    const { props, returns } = this.state;
+    return this.props.handler(props, returns);
   }
 }
 
