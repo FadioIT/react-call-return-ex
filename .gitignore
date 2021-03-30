@@ -1,5 +1,6 @@
 node_modules
 lib
+es
 *-error.log
 .DS_Store
 .vscode

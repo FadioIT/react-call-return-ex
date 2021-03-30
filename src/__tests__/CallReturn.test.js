@@ -1,13 +1,14 @@
-/* global describe, it, expect, jest */
+/* eslint-disable react/prop-types */
+/* global describe, test, expect, jest */
 
 import React from 'react';
-import ReactTestRenderer from 'react-test-renderer';
-import { createCall, createReturn } from '..';
+import { create, act } from 'react-test-renderer';
+import { createCall, createReturn } from '../index';
 
 jest.useFakeTimers();
 
 describe('ReactCallReturn', () => {
-  it('should render a call', () => {
+  test('should render a call', () => {
     const ops = [];
 
     function Continuation({ isSame }) {
@@ -47,13 +48,13 @@ describe('ReactCallReturn', () => {
       );
     }
 
-    const renderer = ReactTestRenderer.create(<App />);
+    let renderer;
+    act(() => {
+      renderer = create(<App />);
+    });
 
     expect(ops).toEqual([
       'Parent',
-      // this is the flaw of this implementation, on first render
-      // we have returns equals []
-      'HandleReturns',
       'Indirection',
       ['Child', true],
       // Return
@@ -67,7 +68,7 @@ describe('ReactCallReturn', () => {
     expect(renderer.toJSON()).toMatchSnapshot();
   });
 
-  it('should update a call', () => {
+  test('should update a call', () => {
     function Continuation({ isSame }) {
       return <span prop={isSame ? 'foo==bar' : 'foo!=bar'} />;
     }
@@ -100,14 +101,19 @@ describe('ReactCallReturn', () => {
       );
     }
 
-    const renderer = ReactTestRenderer.create(<App foo />);
+    let renderer;
+    act(() => {
+      renderer = create(<App foo />);
+    });
     expect(renderer.toJSON()).toMatchSnapshot();
 
-    renderer.update(<App foo={false} />);
+    act(() => {
+      renderer.update(<App foo={false} />);
+    });
     expect(renderer.toJSON()).toMatchSnapshot();
   });
 
-  it('should unmount a composite in a call', () => {
+  test('should unmount a composite in a call', () => {
     let ops = [];
 
     class Continuation extends React.Component {
@@ -150,32 +156,30 @@ describe('ReactCallReturn', () => {
       }
     }
 
-    const renderer = ReactTestRenderer.create(
-      <Parent>
-        <Child />
-      </Parent>,
-    );
+    let renderer;
+    act(() => {
+      renderer = create(
+        <Parent>
+          <Child />
+        </Parent>,
+      );
+    });
 
-    expect(ops).toEqual([
-      'Parent',
-      'HandleReturns', // initial render problem
-      'Child',
-      'HandleReturns',
-      'Continuation',
-    ]);
+    expect(ops).toEqual(['Parent', 'Child', 'HandleReturns', 'Continuation']);
 
     ops = [];
-
-    renderer.update(<div />);
+    act(() => {
+      renderer.update(<div />);
+    });
 
     expect(ops).toEqual([
       'Unmount Parent',
-      'Unmount Child',
       'Unmount Continuation',
+      'Unmount Child',
     ]);
   });
 
-  it('should handle deep updates in call', () => {
+  test('should handle deep updates in call', () => {
     const instances = {};
 
     class Counter extends React.Component {
@@ -189,28 +193,33 @@ describe('ReactCallReturn', () => {
 
     function App() {
       return createCall(
-        [
-          <Counter key="a" id="a" />,
-          <Counter key="b" id="b" />,
-          <Counter key="c" id="c" />,
-        ],
+        <>
+          <Counter key="a" id="a" />
+          <Counter key="b" id="b" />
+          <Counter key="c" id="c" />
+        </>,
         (p, returns) => returns.map((y, i) => <span key={i} prop={y * 100} />),
         {},
       );
     }
 
-    const renderer = ReactTestRenderer.create(<App />);
+    let renderer;
+    act(() => {
+      renderer = create(<App />);
+    });
     expect(renderer.toJSON()).toMatchSnapshot();
 
-    instances.a.setState({ value: 1 });
-    instances.b.setState({ value: 2 });
+    act(() => {
+      instances.a.setState({ value: 1 });
+      instances.b.setState({ value: 2 });
+    });
 
     jest.runAllTimers();
 
     expect(renderer.toJSON()).toMatchSnapshot();
   });
 
-  it('should unmount and remount children', () => {
+  test('should unmount and remount children', () => {
     let ops = [];
 
     class Call extends React.Component {
@@ -235,12 +244,15 @@ describe('ReactCallReturn', () => {
       }
     }
 
-    const render = ReactTestRenderer.create(
-      <Call>
-        <Return value={1} />
-        <Return value={2} />
-      </Call>,
-    );
+    let renderer;
+    act(() => {
+      renderer = create(
+        <Call>
+          <Return value={1} />
+          <Return value={2} />
+        </Call>,
+      );
+    });
 
     expect(ops).toEqual([
       'Mount Return 1',
@@ -251,17 +263,21 @@ describe('ReactCallReturn', () => {
 
     ops = [];
 
-    render.update(<Call />);
+    act(() => {
+      renderer.update(<Call />);
+    });
 
     expect(ops).toEqual(['Unmount Return 1', 'Unmount Return 2']);
 
     ops = [];
 
-    render.update(
-      <Call>
-        <Return value={3} />
-      </Call>,
-    );
+    act(() => {
+      renderer.update(
+        <Call>
+          <Return value={3} />
+        </Call>,
+      );
+    });
 
     expect(ops).toEqual(['Mount Return 3', 'Return 3']);
   });

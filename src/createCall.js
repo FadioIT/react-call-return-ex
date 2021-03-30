@@ -1,63 +1,78 @@
-import React from 'react';
+/* eslint-disable react/prop-types */
+import { useEffect, useMemo, useRef } from 'react';
 import CallReturnReconcilier from './CallReturnReconcilier';
 import { createContainerInfo } from './CallReturnHostConfig';
+import { useSubscription } from 'use-subscription';
+import { shallowEqualArrays } from 'shallow-equal';
 
-class Call extends React.PureComponent {
-  constructor(props, context) {
-    super(props, context);
-    this._container = createContainerInfo(this.updateState);
-    this._hasUnmounted = false;
-    this._updating = false;
-    this.state = { returns: [], props: props.props };
-  }
+const INITIAL_CHILDREN = {};
 
-  componentDidMount() {
-    this._mountNode = CallReturnReconcilier.createContainer(this._container);
-    this.updateContainer();
-    this.updateState();
-  }
+const Call = ({ children, props, handler }) => {
+  const subscription = useMemo(() => {
+    let updating = false;
+    let callback = null;
+    let returns = [];
 
-  componentDidUpdate(oldProps) {
-    if (oldProps.children !== this.props.children) {
-      this.updateContainer();
-      this.updateState();
-    } else if (oldProps.props !== this.props.props) {
-      // eslint-disable-next-line
-      this.setState({ props: this.props.props });
-    }
-  }
-
-  componentWillUnmount() {
-    this._hasUnmounted = true;
-    CallReturnReconcilier.updateContainer(null, this._mountNode, this);
-    this.updateState();
-  }
-
-  updateState = () => {
-    if (this._hasUnmounted || this._updating) {
-      return;
-    }
-    this.setState({
-      props: this.props.props,
-      returns: this._container.children.map(({ value }) => value),
+    const container = createContainerInfo(() => {
+      if (updating) {
+        return;
+      }
+      notifyUpdateIfNecessary();
     });
-  };
+    const mountNode = CallReturnReconcilier.createContainer(container);
 
-  updateContainer() {
-    this._updating = true;
-    CallReturnReconcilier.updateContainer(
-      this.props.children,
-      this._mountNode,
-      this,
-    );
-    this._updating = false;
-  }
+    const retrieveReturns = () => container.children.map(({ value }) => value);
 
-  render() {
-    const { props, returns } = this.state;
-    return this.props.handler(props, returns);
-  }
-}
+    const notifyUpdateIfNecessary = () => {
+      const newReturns = retrieveReturns();
+      if (!shallowEqualArrays(newReturns, returns)) {
+        returns = newReturns;
+        callback?.();
+      }
+    };
+
+    const unmount = () => {
+      CallReturnReconcilier.updateContainer(null, mountNode, null);
+    };
+
+    CallReturnReconcilier.updateContainer(children, mountNode, null);
+    returns = retrieveReturns();
+
+    return {
+      getCurrentValue() {
+        return returns;
+      },
+      subscribe(val) {
+        callback = val;
+        return () => {
+          callback = null;
+          unmount();
+        };
+      },
+      update(children) {
+        updating = true;
+        CallReturnReconcilier.updateContainer(children, mountNode, null);
+        updating = false;
+        notifyUpdateIfNecessary();
+      },
+    };
+  }, []);
+
+  const returns = useSubscription(subscription);
+
+  const childrenRef = useRef(INITIAL_CHILDREN);
+  useEffect(() => {
+    if (
+      childrenRef.current !== INITIAL_CHILDREN &&
+      childrenRef.current !== children
+    ) {
+      subscription.update(children);
+    }
+    childrenRef.current = children;
+  }, [children]);
+
+  return useMemo(() => handler(props, returns), [props, returns]);
+};
 
 function createCall(children, handler, props) {
   return (
