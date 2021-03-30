@@ -71,7 +71,7 @@ const Call = ({ children, props, handler }) => {
     childrenRef.current = children;
   }, [children]);
 
-  return useMemo(() => handler(props, returns), [props, returns]);
+  return useMemo(() => handler(props, returns), [handler, props, returns]);
 };
 
 function createCall(children, handler, props) {
