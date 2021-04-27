@@ -28,8 +28,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.13.9",
-    "shallow-equal": "^1.2.1",
-    "use-subscription": "^1.5.1"
+    "shallow-equal": "^1.2.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.13.14",

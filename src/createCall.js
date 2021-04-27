@@ -1,77 +1,58 @@
-/* eslint-disable react/prop-types */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CallReturnReconcilier from './CallReturnReconcilier';
 import { createContainerInfo } from './CallReturnHostConfig';
-import { useSubscription } from 'use-subscription';
 import { shallowEqualArrays } from 'shallow-equal';
 
-const INITIAL_CHILDREN = {};
+const createCallRenderer = (callback) => {
+  let updating = false;
+  let returns = null;
+
+  const container = createContainerInfo(() => {
+    if (updating) {
+      return;
+    }
+    const newReturns = retrieveReturns();
+    if (!shallowEqualArrays(newReturns, returns)) {
+      returns = newReturns;
+      callback?.();
+    }
+  });
+
+  const mountNode = CallReturnReconcilier.createContainer(container);
+
+  const retrieveReturns = () => container.children.map(({ value }) => value);
+
+  return {
+    getReturns() {
+      return returns;
+    },
+    render(children) {
+      updating = true;
+      CallReturnReconcilier.updateContainer(children, mountNode, null);
+      updating = false;
+      returns = retrieveReturns();
+    },
+    unmount() {
+      CallReturnReconcilier.updateContainer(null, mountNode, null);
+    },
+  };
+};
 
 const Call = ({ children, props, handler }) => {
-  const subscription = useMemo(() => {
-    let updating = false;
-    let callback = null;
-    let returns = [];
-
-    const container = createContainerInfo(() => {
-      if (updating) {
-        return;
-      }
-      notifyUpdateIfNecessary();
-    });
-    const mountNode = CallReturnReconcilier.createContainer(container);
-
-    const retrieveReturns = () => container.children.map(({ value }) => value);
-
-    const notifyUpdateIfNecessary = () => {
-      const newReturns = retrieveReturns();
-      if (!shallowEqualArrays(newReturns, returns)) {
-        returns = newReturns;
-        callback?.();
-      }
-    };
-
-    const unmount = () => {
-      CallReturnReconcilier.updateContainer(null, mountNode, null);
-    };
-
-    CallReturnReconcilier.updateContainer(children, mountNode, null);
-    returns = retrieveReturns();
-
-    return {
-      getCurrentValue() {
-        return returns;
-      },
-      subscribe(val) {
-        callback = val;
-        return () => {
-          callback = null;
-          unmount();
-        };
-      },
-      update(children) {
-        updating = true;
-        CallReturnReconcilier.updateContainer(children, mountNode, null);
-        updating = false;
-        notifyUpdateIfNecessary();
-      },
-    };
-  }, []);
-
-  const returns = useSubscription(subscription);
-
-  const childrenRef = useRef(INITIAL_CHILDREN);
-  useEffect(() => {
-    if (
-      childrenRef.current !== INITIAL_CHILDREN &&
-      childrenRef.current !== children
-    ) {
-      subscription.update(children);
-    }
+  const [, forceUpdate] = useState(null);
+  const renderer = useMemo(() => createCallRenderer(forceUpdate), []);
+  const childrenRef = useRef(null);
+  if (childrenRef.current !== children) {
     childrenRef.current = children;
-  }, [children]);
-
-  return useMemo(() => handler(props, returns), [handler, props, returns]);
+    renderer.render(childrenRef.current);
+  }
+  useEffect(
+    () => () => {
+      renderer.unmount();
+    },
+    [],
+  );
+  return handler(props, renderer.getReturns());
 };
 
 function createCall(children, handler, props) {
